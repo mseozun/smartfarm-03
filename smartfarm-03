@@ -1,0 +1,112 @@
+📘 Jetson Nano + Arduino + DHT11 자동 이메일 시스템
+Jetson Nano와 Arduino를 활용해 실시간 온·습도 데이터를 측정하고, 일정 주기로 이메일로 전송하는 시스템입니다. 센서 데이터를 JSON 형태로 저장하고, 평균값과 그래프를 포함한 보고서를 이메일로 자동 발송합니다.
+
+📌 구성 요소
+구성	설명
+Jetson Nano	Python으로 시리얼 통신, 이메일 전송
+Arduino Uno	DHT11 센서 값을 JSON 형태로 시리얼 출력
+DHT11 센서	온도 및 습도 측정 디지털 센서
+Gmail SMTP	Google 메일 서버를 통해 이메일 발송
+
+🛠️ 사전 준비
+✅ 하드웨어 연결
+DHT11 → Arduino Uno
+
+VCC → 5V
+
+GND → GND
+
+Data → D2
+
+Arduino Uno → Jetson Nano (USB 케이블 연결)
+
+✅ Arduino 코드 업로드
+cpp
+#include <DHT.h>
+
+#define DHTPIN 2
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+}
+
+void loop() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  if (isnan(h) || isnan(t)) return;
+
+  Serial.print("{\"temperature\":");
+  Serial.print(t);
+  Serial.print(",\"humidity\":");
+  Serial.println(h);
+  
+  delay(2000);
+}
+🔄 출력 예시
+json
+{"temperature":24.5,"humidity":60.0}
+✅ Jetson Nano 설정
+1. 시리얼 포트 권한 부여
+bash
+sudo usermod -aG dialout $USER
+# 적용을 위해 로그아웃 후 재로그인
+2. 포트 확인
+bash
+ls /dev/ttyACM*
+# 또는
+dmesg | grep tty
+예상 포트: /dev/ttyACM0 또는 /dev/ttyUSB0
+
+🐍 Python 코드: simpledht.py
+Jetson Nano에서 실행되는 주요 기능:
+
+시리얼 포트로부터 JSON 데이터 수신
+
+데이터 로그 저장
+
+일정 시간마다 평균값 계산 + 그래프 생성
+
+Gmail SMTP로 자동 이메일 발송
+
+🔗 주요 파라미터
+항목	값
+포트	/dev/ttyACM0
+보드레이트	115200
+이메일 간격	3600초 (1시간)
+SMTP 서버	smtp.gmail.com:587
+인증 방식	Gmail 앱 비밀번호 사용
+
+📤 이메일 예시
+제목
+DHT11 센서 데이터 리포트 - 2025-07-11 13:00
+
+본문:
+mathematica
+🌡️ 온도 평균: 24.5°C  
+💧 습도 평균: 58.2%  
+📈 첨부된 그래프 확인
+
+🧪 문제 해결 팁
+증상	원인	해결책
+No data to send	데이터 미수신	in_waiting 제거, 포트 확인, 권한 재확인
+SerialException	포트 인식 실패	올바른 포트 경로 사용
+그래프 없음	데이터 부족	최소 2개 이상의 데이터 수집 필요
+
+▶️ 실행 방법
+bash
+python3 simpledht.py
+터미널 출력 예시:
+css
+Email sent successfully to your_email@gmail.com
+
+✅ 결과 확인
+📧 수신 이메일에는 다음이 포함됩니다:
+📊 온·습도 평균 요약
+
+📎 참고
+Python 라이브러리: serial, smtplib, matplotlib, email, json, csv
+
+Gmail 설정에서 앱 비밀번호 생성 필요
